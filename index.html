@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html><script type="text/javascript" id="custom-useragent-string-page-script"></script><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon" id="favicon">
+		<title>Luka Rizzi's FaviPong</title>
+	</head>
+	<body>
+
+		<h1 style="text-align:center">^ FaviPong ^</h1>
+		<h2 style="text-align:center">^ The game takes place in the Browser Tab Icon ^</h2>
+		<h2 style="text-align:center">Player One uses W-S to move their pad. Player Two uses the up and down arrow keys. You can play locally against a friend or against an AI.</h2>
+		<h3 style="text-align:center">Made by <a href="https://lukahizoalgo.itch.io">Luka Rizzi</a> over two days because of boredom and not wanting to do my actual job. Inspired by <a href="http://www.p01.org/defender_of_the_favicon/">Defender of the Favicon</a> and <a href="https://www.youtube.com/watch?v=kZFhm7aW8A4">this Mashpoe's video</a>.</h3>
+		<h3 style="text-align:center">Press Space to Start the game in your selected mode.</h3>
+
+		<h1 id='score'>0 | 0</h1>
+		<h2 id='winner'></h2>
+
+		<h1 id='onePlayerText' style="font-weight: bold;">> One Player</h1>
+		<h1 id='twoPlayerText' style="font-weight: bold;">  Two Players</h1>
+
+		<script>
+
+		// Clamp number between two values with the following line:
+		const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+
+		// create the canvas
+		var canvas = document.createElement("CANVAS");
+		var ctx = canvas.getContext("2d", { alpha: false });
+		canvas.width = 16;
+		canvas.height = 16;
+		
+		// load game resources
+		var images = [];
+		
+		// prepares an image to be loaded and returns the element
+		function addImage(imgSrc) {
+			var newImg = new Image();
+			images.push({img:newImg, src:imgSrc});
+			return newImg;
+		}
+			
+		// load each image and then start the game loop
+		function loadImages() {
+			if (images.length > 0) {
+				
+				// load the first image in the array
+				images[0].img.onload = loadImages;
+				images[0].img.src = images[0].src;
+				
+				// delete the first element of the array
+				images.shift();
+				
+			} else {
+				start();
+				console.log("start");
+			}
+		}
+		
+		// create image objects
+		var padImage 		= addImage("images/pad.png");
+		var ballImage 		= addImage("images/ball.png");
+		var titleImage 		= addImage("images/title.png");
+		var digits 		= addImage("images/digits.png");
+		
+		loadImages();
+		
+		function setFavicon() {
+			var newIcon = favicon.cloneNode(true);
+			newIcon.setAttribute("href", canvas.toDataURL());
+			favicon.parentNode.replaceChild(newIcon, favicon);
+		}
+			
+		// event handling
+		var spaceDown = false;
+		window.addEventListener("keydown", function(event) {
+			// 32 = space
+			if (event.keyCode == 32) {
+				spaceDown = true;
+			}
+		})
+		window.addEventListener("keyup", function(event) {
+			// 32 = space
+			if (event.keyCode == 32) {
+				spaceDown = false;
+			}
+		})
+
+		var upHeld = false;
+		window.addEventListener("keydown", function(event) {
+			if (event.keyCode == 38) {
+				upHeld = true;
+			}
+		})
+		window.addEventListener("keyup", function(event) {
+			if (event.keyCode == 38) {
+				upHeld = false;
+			}
+		})
+
+		var downHeld = false;
+		window.addEventListener("keydown", function(event) {
+			if (event.keyCode == 40) {
+				downHeld = true;
+			}
+		})
+		window.addEventListener("keyup", function(event) {
+			if (event.keyCode == 40) {
+				downHeld = false;
+			}
+		})
+
+		var wHeld = false;
+		window.addEventListener("keydown", function(event) {
+			if (event.keyCode == 87) {
+				wHeld = true;
+			}
+		})
+		window.addEventListener("keyup", function(event) {
+			if (event.keyCode == 87) {
+				wHeld = false;
+			}
+		})
+
+		var sHeld = false;
+		window.addEventListener("keydown", function(event) {
+			if (event.keyCode == 83) {
+				sHeld = true;
+			}
+		})
+		window.addEventListener("keyup", function(event) {
+			if (event.keyCode == 83) {
+				sHeld = false;
+			}
+		})
+		
+		// game state function
+		var currentState = titleScreen;
+			
+		// game loop
+		function start() {
+			// start the first game state
+			titleScreenStart();
+			
+			// start the game loop
+			window.setInterval(function() {
+				currentState();
+				setFavicon();
+			}, 100);
+		}
+			
+		// globals
+		var playerScore1 = 0;
+		var playerScore2 = 0;
+			
+		/* game states */
+			
+		// title screen
+		var showTitle = true;
+		var toggleSpaceInterval;
+		var twoPlayers = false;
+
+		function titleScreenImage() {
+			showTitle = !showTitle;
+		}
+		
+		function titleScreenStart() {
+			toggleTitleInterval = window.setInterval(titleScreenImage, 500);
+			document.getElementById('onePlayerText').innerText = "> One Player";
+			document.getElementById('twoPlayerText').innerText = "  Two Players";
+		}
+			
+		function titleScreen() {
+			titleScreenUpdate();
+			titleScreenRender();
+		}
+		
+		function titleScreenUpdate() {
+			if (spaceDown) {
+				titleScreenQuit();
+				currentState = game;
+				gameStart();	
+			}
+
+			if (upHeld || wHeld)
+			{
+				document.getElementById('onePlayerText').innerText = "> One Player";
+				document.getElementById('twoPlayerText').innerText = "  Two Players";
+				twoPlayers = false;
+			}
+
+			if (downHeld || sHeld)
+			{
+				document.getElementById('onePlayerText').innerText = "  One Player";
+				document.getElementById('twoPlayerText').innerText = "> Two Players";
+				twoPlayers = true;
+			}
+		}
+			
+		function titleScreenRender() {
+			// clear the canvas
+			ctx.fillStyle="#1f2c3f";
+			ctx.fillRect(0,0,16,16);
+			
+			// draw game objects
+			if (showTitle) {
+				ctx.drawImage(titleImage, 0, 0);
+			}
+			ctx.drawImage(padImage, 1, firstPadY);
+			ctx.drawImage(padImage, 14, secondPadY);
+		}
+			
+		function titleScreenQuit() {
+			window.clearInterval(toggleTitleInterval);
+		}
+			
+		// game
+		var firstPadY = 8;
+		var secondPadY = 8;
+		var ballX = 8;
+		var ballY = 8;
+		var ballDirX = 1;
+		var ballDirY = 1;
+		var ballSpeedX = .5;
+		var ballSpeedY = .5;
+		var ballSpawnCDMax = 15;
+		var ballSpawnCD = 15;
+		
+		function getBall()
+		{
+			ballX = 8;
+			ballY = 8;
+			ballDirY = Math.random() < 0.5 ? -1 : 1;
+			ballSpeedY = Math.random()-.5;
+			ballSpawnCD = ballSpawnCDMax;
+		}
+
+		function gameStart() {
+			document.getElementById('winner').innerText = "";
+			document.getElementById('score').innerText = "0 | 0";
+			playerScore1 = 0; playerScore2 = 0;
+			document.getElementById('onePlayerText').innerText = "  One Player";
+			document.getElementById('twoPlayerText').innerText = "  Two Players";
+
+			firstPadY = 8;
+			secondPadY = 8;
+			getBall();
+			score = 0;
+		}
+			
+		function game() {
+			gameUpdate();
+			gameRender();
+		}
+			
+		function gameUpdate() {
+
+			if (ballSpawnCD > 0)
+			{
+				ballSpawnCD--;
+				return;
+			}
+
+			// update pads
+
+			if (twoPlayers)
+			{
+				firstPadY = clamp(firstPadY + (sHeld - wHeld), 0, 12);
+				secondPadY = clamp(secondPadY + (downHeld - upHeld), 0, 12);
+			}
+			else
+			{
+				firstPadY = clamp(firstPadY + ((sHeld || downHeld) - (wHeld || upHeld)), 0, 12);
+				secondPadY = Math.random() < .5? clamp(secondPadY + Math.sign(ballY - (secondPadY+2)), 0, 12) : secondPadY;
+			}
+
+			ballX += ballDirX * ballSpeedX;
+			ballY += ballDirY * ballSpeedY;
+
+			if (ballX <= 0)
+			{
+				getBall();
+				
+				playerScore2++;
+				ballDirX = 1;
+
+				document.getElementById('score').innerText = playerScore1.toString() + " | " + playerScore2.toString();
+				if (playerScore2 > 2)
+				{
+					document.getElementById('winner').innerText = "¡Player2 Won!";
+					gameQuit();
+				}
+			}
+
+			if (ballX >= 15)
+			{
+				getBall();
+
+				playerScore1++;
+				ballDirX = -1;
+
+				document.getElementById('score').innerText = playerScore1.toString() + " | " + playerScore2.toString();
+				if (playerScore1 > 2)
+				{
+					document.getElementById('winner').innerText = "¡Player1 Won!";
+					gameQuit();
+				}
+			}
+
+			if (ballY <= 0 || ballY >= 15)
+			{
+				ballDirY *=-1;
+				ballY = clamp(ballY, 0.1, 14.9);
+			}
+			
+			if (ballX <=2 && ballX >= 1 && Math.abs(ballY - (firstPadY + 1.5)) < 2.5)
+			{
+				ballX = clamp(ballX,2,14);
+				ballDirX *= -1;
+				ballSpeedY = (ballY - (firstPadY + 1.5))/2;
+				console.log("supposed dif: " + (ballY - (firstPadY + 1.5)));
+				console.log("ballPos: " + ballX + " " + ballY);
+				console.log("ballDir: " + ballDirX + " " + ballDirY);
+			}
+
+			if (ballX <=15 && ballX >= 14 && Math.abs(ballY - (secondPadY + 1.5)) < 2.5)
+			{
+				ballX = clamp(ballX,2,14);
+				ballDirX *= -1;
+				ballSpeedY = (ballY - (secondPadY + 1.5))/2;
+				console.log("supposed dif: " + (ballY - (secondPadY + 1.5)));
+				console.log("ballPos: " + ballX + " " + ballY);
+				console.log("ballDir: " + ballDirX + " " + ballDirY);
+			}
+		}
+		
+		function gameRender() {
+			// clear the canvas
+			ctx.fillStyle="#1f2c3f";
+			ctx.fillRect(0,0,16,16);
+			
+			// draw pads
+			ctx.drawImage(padImage, 1, firstPadY);
+			ctx.drawImage(padImage, 14, secondPadY);
+
+			//draw ball
+			ctx.drawImage(ballImage, Math.floor(ballX), Math.floor(ballY));
+			
+			// draw score
+			//var scoreStr = score.toString();
+		}
+			
+		function gameQuit() {
+			titleScreenStart();
+			currentState = titleScreen;
+		}
+			
+		// game over
+		var newSpacePress = true;
+		function gameOverStart() {
+			
+			// set and display high score
+			//if (score > highScore) {
+			//	highScore = score;
+			//	document.title = "HI: " + highScore;
+			//}
+			
+			if (spaceDown) {
+				// prevent the game from starting over if space was already held down
+				newSpacePress = false;
+			}
+		}
+		
+		function gameOver() {
+			// prevent the game from starting over if space was already held down
+			if (spaceDown && newSpacePress) {
+				currentState = game;
+				gameStart();
+			} else if (!spaceDown && !newSpacePress) {
+				newSpacePress = true;
+			}
+		}
+		
+		</script>
+	
+
+</body></html>
